@@ -9,7 +9,7 @@ from time import sleep
 # def task2():
 #     return
 
-@shared_task
+@shared_task(task_rate_limit='6/m')
 def ts1(priority=0, queue='celery'):
     sleep(4)
     return
