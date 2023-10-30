@@ -1,6 +1,7 @@
 import os
 import time
 from celery import Celery
+from celery.result import AsyncResult
 from kombu import Exchange, Queue
 
 # Set the default Django settings module for the 'celery' program.
@@ -41,9 +42,11 @@ app.autodiscover_tasks()
 
 
 @app.task(queue='tasks')
-def t1():
-    time.sleep(4)
-    return
+def t1(a, b, message=None):
+    result = a + b
+    if message:
+        result = '{} {}'.format(message, result)
+    return result
 
 @app.task(queue='tasks')
 def t2():
@@ -59,3 +62,22 @@ def t3():
 def t4():
     time.sleep(4)
     return
+
+def test():
+    a: AsyncResult = t1.apply_async(args=(5, 10), kwargs={'message': 'The sum is'})
+
+    if a.ready():
+        print('task has completed.')
+    else:
+        print('task is still running.')
+
+    if a.successful():
+        print('task completed succeeded.')
+    else:
+        print('task not completed succeeded (yet).')
+
+    try:
+        result = a.get()
+        print('Task result:', result, a.status)
+    except Exception as e:
+        print('An exception occurred', str(e))
