@@ -1,5 +1,6 @@
 import os
 import time
+from django.conf import settings
 from celery import Celery
 from celery.result import AsyncResult
 from kombu import Exchange, Queue
@@ -37,47 +38,17 @@ app.conf.worker_concurrency = 1
 #     'queue_order_strategy': 'priority',
 # }
 
-# Load task modules from all registered Django apps.
-app.autodiscover_tasks()
-
-
-@app.task(queue='tasks')
-def t1(a, b, message=None):
-    result = a + b
-    if message:
-        result = '{} {}'.format(message, result)
-    return result
-
-@app.task(queue='tasks')
-def t2():
-    time.sleep(4)
-    return
-
-@app.task(queue='tasks')
-def t3():
-    time.sleep(4)
-    return
-
-@app.task(queue='tasks')
-def t4():
-    time.sleep(4)
-    return
-
-def test():
-    a: AsyncResult = t1.apply_async(args=(5, 10), kwargs={'message': 'The sum is'})
-
-    if a.ready():
-        print('task has completed.')
-    else:
-        print('task is still running.')
-
-    if a.successful():
-        print('task completed succeeded.')
-    else:
-        print('task not completed succeeded (yet).')
-
-    try:
-        result = a.get()
-        print('Task result:', result, a.status)
-    except Exception as e:
-        print('An exception occurred', str(e))
+base_path = os.getcwd()
+tasks_path = os.path.join(base_path, 'dcelery', 'celery_tasks')
+if os.path.exists(tasks_path) and os.path.isdir(tasks_path):
+    task_modules = list()
+    for filename in os.listdir(tasks_path):
+        if filename.startswith('task') and filename.endswith('.py'):
+            module_name = f'dcelery.celery_tasks.{filename[:-3]}'
+            module = __import__(module_name, fromlist=['*'])
+            for name in dir(module):
+                obj = getattr(module, name)
+                if callable(obj) and name.startswith('task'):
+                    task_modules.append(f'{module_name}.{name}')
+    app.autodiscover_tasks(task_modules)
+app.autodiscover_tasks(lambda: settings.INSTALLED_APPS)
