@@ -16,12 +16,12 @@ app = Celery('dcelery')
 # - namespace='CELERY' means all celery-related configuration keys
 #   should have a `CELERY_` prefix.
 app.config_from_object('django.conf:settings', namespace='CELERY')
-sentry_dns = '****'
-sentry_sdk.init(
-    dsn=sentry_dns,
-    traces_sample_rate=1.0,
-    profiles_sample_rate=1.0,
-)
+# sentry_dns = '****'
+# sentry_sdk.init(
+#     dsn=sentry_dns,
+#     traces_sample_rate=1.0,
+#     profiles_sample_rate=1.0,
+# )
 
 app.conf.task_queues = [
     Queue('tasks', Exchange('tasks'), routing_key='tasks',
